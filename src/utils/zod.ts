@@ -22,4 +22,8 @@ export const signinSchema = z.object({
         .regex(/[a-z]/, { error: 'Password must contain at least one lowercase letter' })
         .regex(/[0-9]/, { error: 'Password must contain at least one number' })
         .regex(/[@$!%*?&]/, { error: 'Password must contain at least one special character' })
+});
+
+export const classSchema = z.object({
+    className: z.string().min(3)
 })

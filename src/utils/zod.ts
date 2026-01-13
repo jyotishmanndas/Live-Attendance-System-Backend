@@ -25,5 +25,9 @@ export const signinSchema = z.object({
 });
 
 export const classSchema = z.object({
-    className: z.string().min(3)
+    className: z.string().min(3).max(15)
+});
+
+export const studentSchema = z.object({
+    studentId: z.string().min(5)
 })

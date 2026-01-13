@@ -3,7 +3,7 @@ import mongoose, { Schema, Document, Model, Types } from "mongoose";
 export interface IClass extends Document {
     className: string;
     teacherId: Types.ObjectId;
-    students: Types.ObjectId[];
+    studentIds: Types.ObjectId[];
     createdAt: Date;
     updatedAt: Date;
 }
@@ -19,7 +19,7 @@ const classSchema = new Schema<IClass>({
         ref: "User",
         required: true
     },
-    students: [
+    studentIds: [
         {
             type: mongoose.Schema.Types.ObjectId,
             ref: "User"

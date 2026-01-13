@@ -8,7 +8,7 @@ export const userSignUp = async (req: Request, res: Response) => {
     try {
         const payload = signupSchema.safeParse(req.body);
         if (!payload.success) {
-            return res.status(400).json({ msg: "Invalid inpust", succes: "false", error: payload.error.message })
+            return res.status(400).json({ msg: "Invalid inpust", succes: "false", error: payload.error.issues })
         };
 
         const existingUser = await User.findOne({
@@ -59,12 +59,11 @@ export const userSignUp = async (req: Request, res: Response) => {
     }
 }
 
-
 export const userSignIn = async (req: Request, res: Response) => {
     try {
         const payload = signinSchema.safeParse(req.body);
         if (!payload.success) {
-            return res.status(400).json({ msg: "Invalid input", success: false, error: payload.error.message })
+            return res.status(400).json({ msg: "Invalid input", success: false, error: payload.error.issues })
         };
 
         const existingUser = await User.findOne({
@@ -101,5 +100,23 @@ export const userSignIn = async (req: Request, res: Response) => {
     } catch (error) {
         console.log("Error while signin", error);
         return res.status(500).json("internal server error");
+    }
+}
+
+export const userDetails = (req: Request, res: Response) => {
+    try {
+        if (req.user) {
+            return res.status(200).json({
+                msg: "User data fetched successfully", data: {
+                    id: req.user._id,
+                    name: req.user.name,
+                    email: req.user.email,
+                    role: req.user.role
+                }
+            })
+        }
+    } catch (error) {
+        console.log("Error while getting user details", error);
+        return res.status(500).json({ msg: "Internal server error" })
     }
 }

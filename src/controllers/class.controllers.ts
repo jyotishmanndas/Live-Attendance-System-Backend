@@ -66,6 +66,11 @@ export const addStudent = async (req: Request, res: Response) => {
             return res.status(400).json({ msg: "This user is not a student" });
         }
 
+        const alreadyAStudent = classDoc.studentIds.find((s) => s._id.toString() === studentId);
+        if (alreadyAStudent) {
+            return res.status(400).json({ msg: "Already endrolled as a student" })
+        }
+
         await Class.findByIdAndUpdate(classId, {
             $addToSet: {
                 studentIds: studentUser._id
@@ -82,6 +87,9 @@ export const addStudent = async (req: Request, res: Response) => {
 export const getClassDetails = async (req: Request, res: Response) => {
     try {
         const { classId } = req.params;
+        if (!classId) {
+            return res.status(400).json({ msg: "class id is required" });
+        };
 
         const classDoc = await Class.findById(classId)
             .populate("studentIds", "_id name email");
@@ -108,53 +116,53 @@ export const getClassDetails = async (req: Request, res: Response) => {
     }
 }
 
-export const getStudentDetails = async (req: Request, res: Response) => {
-    try {
-        if (req.user?.role !== "teacher") {
-            return res.status(403).json({ msg: "Only teacher can get student details" })
-        };
+// export const getStudentDetails = async (req: Request, res: Response) => {
+//     try {
+//         if (req.user?.role !== "teacher") {
+//             return res.status(403).json({ msg: "Only teacher can get student details" })
+//         };
 
-        const { classId } = req.params;
+//         const { classId } = req.params;
 
-        const student = await Class.aggregate([
-            {
-                $match: {
-                    _id: new mongoose.Types.ObjectId(classId.toString())
-                }
-            },
-            {
-                $lookup: {
-                    from: "users",
-                    localField: "studentIds",
-                    foreignField: "_id",
-                    as: "studentIds",
-                    pipeline: [
-                        {
-                            $project: {
-                                _id: 1,
-                                name: 1,
-                                email: 1
-                            }
-                        }
-                    ]
-                }
-            },
-            {
-                $project: {
-                    studentIds: 1
-                }
-            }
-        ])
-
-
-        return res.status(200).json({ data: student })
+//         const student = await Class.aggregate([
+//             {
+//                 $match: {
+//                     _id: new mongoose.Types.ObjectId(classId.toString())
+//                 }
+//             },
+//             {
+//                 $lookup: {
+//                     from: "users",
+//                     localField: "studentIds",
+//                     foreignField: "_id",
+//                     as: "studentIds",
+//                     pipeline: [
+//                         {
+//                             $project: {
+//                                 _id: 1,
+//                                 name: 1,
+//                                 email: 1
+//                             }
+//                         }
+//                     ]
+//                 }
+//             },
+//             {
+//                 $project: {
+//                     studentIds: 1
+//                 }
+//             }
+//         ])
 
 
-    } catch (error) {
-        console.error("Error while fetching students details:", error);
-        return res.status(500).json({ msg: "Internal server error" });
-    }
-}
+//         return res.status(200).json({ data: student })
+
+
+//     } catch (error) {
+//         console.error("Error while fetching students details:", error);
+//         return res.status(500).json({ msg: "Internal server error" });
+//     }
+// }
 
 export const getAllStudents = async (req: Request, res: Response) => {
     try {

@@ -7,6 +7,7 @@ dotenv.config();
 
 import userRoute from "./routes/user.route";
 import classRoute from "./routes/class.route";
+import attendanceRoute from "./routes/attendance.route";
 import { connectDB } from "./db/db";
 
 
@@ -26,6 +27,8 @@ connectDB();
 
 app.use("/api/v1/user", userRoute);
 app.use("/api/v1/class", classRoute);
+app.use("/api/v1/attendance", attendanceRoute);
+
 
 
 

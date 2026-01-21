@@ -30,4 +30,8 @@ export const classSchema = z.object({
 
 export const studentSchema = z.object({
     studentId: z.string().min(5)
+});
+
+export const attendanceSchema = z.object({
+    classId: z.string()
 })

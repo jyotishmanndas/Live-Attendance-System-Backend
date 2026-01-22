@@ -2,6 +2,7 @@ import express from "express";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import dotenv from "dotenv";
+import {createServer} from "http";
 
 dotenv.config();
 
@@ -9,10 +10,14 @@ import userRoute from "./routes/user.route";
 import classRoute from "./routes/class.route";
 import attendanceRoute from "./routes/attendance.route";
 import { connectDB } from "./db/db";
+import { initWebSocket } from "./ws/ws";
 
+
+const PORT = process.env.PORT || 3000;
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const server = createServer(app);
+
 
 app.use(cors({
     origin: "*",
@@ -29,10 +34,10 @@ app.use("/api/v1/user", userRoute);
 app.use("/api/v1/class", classRoute);
 app.use("/api/v1/attendance", attendanceRoute);
 
+initWebSocket(server)
 
 
-
-app.listen(PORT, () => {
+server.listen(PORT, () => {
     console.log(`Server is listening to the port ${PORT}`);
 })
 

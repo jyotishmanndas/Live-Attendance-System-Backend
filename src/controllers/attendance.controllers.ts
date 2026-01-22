@@ -10,7 +10,7 @@ interface ActiveSession {
     }
 }
 
-let activeSession: ActiveSession | null = null
+export let activeSession: ActiveSession | null = null
 
 export const startAttendance = async (req: Request, res: Response) => {
     try {
@@ -34,13 +34,13 @@ export const startAttendance = async (req: Request, res: Response) => {
             return res.status(400).json({ msg: "" })
         }
 
-        if (activeSession) {
-            return res.status(409).json({
-                success: false,
-                msg: "Another attendance session is already running",
-                data: activeSession,
-            });
-        }
+        // if (activeSession) {
+        //     return res.status(409).json({
+        //         success: false,
+        //         msg: "Another attendance session is already running",
+        //         data: activeSession,
+        //     });
+        // }
 
         activeSession = {
             classId,

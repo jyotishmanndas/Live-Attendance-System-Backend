@@ -74,8 +74,37 @@ export const initWebSocket = (server: ReturnType<typeof createServer>) => {
                                 }))
                             }
                         });
+                        break;
+                    }
+                    case "TODAY_SUMMARY": {
+                        if (!activeSession || activeSession.classId.length <= 0) {
+                            ws.send(JSON.stringify({ message: "No active attendance sesssion" }));
+                            return;
+                        };
 
-                        break
+                        if (ws.user?.role !== "teacher") {
+                            ws.send(JSON.stringify({ message: "teacher only event" }));
+                            return
+                        };
+
+                        const attendance = Object.values(activeSession.attendance);
+                        const present = attendance.filter((x) => x === "present").length;
+                        const absent = attendance.filter((x) => x === "absent").length;
+                        const total = attendance.length;
+
+                        clients.forEach((x) => {
+                            if (x.readyState === WebSocket.OPEN) {
+                                x.send(JSON.stringify({
+                                    event: "TODAY_SUMMARY",
+                                    data: {
+                                        present: present,
+                                        absent: absent,
+                                        total: total
+                                    }
+                                }))
+                            }
+                        });
+                        break;
                     }
                     default: {
                         ws.send(JSON.stringify({ success: false, msg: "Unknown event" }));

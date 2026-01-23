@@ -2,6 +2,8 @@ import { WebSocketServer, WebSocket } from 'ws';
 import jwt from "jsonwebtoken";
 import { activeSession } from '../controllers/attendance.controllers';
 import type { createServer } from "http";
+import { Class } from '../models/class.model';
+import { Attendance } from '../models/attendance.model';
 
 type WSUser = {
     userId: string;
@@ -43,7 +45,7 @@ export const initWebSocket = (server: ReturnType<typeof createServer>) => {
 
             clients.add(ws);
 
-            ws.on("message", (data) => {
+            ws.on("message", async (data) => {
                 const message = JSON.parse(data.toString());
 
                 switch (message.event) {
@@ -104,6 +106,99 @@ export const initWebSocket = (server: ReturnType<typeof createServer>) => {
                                 }))
                             }
                         });
+                        break;
+                    }
+                    case "MY_ATTENDANCE": {
+                        if (!activeSession || activeSession.classId.length <= 0) {
+                            ws.send(JSON.stringify({ message: "No active attendance sesssion" }));
+                            return
+                        };
+
+                        if (ws.user?.role !== "student") {
+                            ws.send(JSON.stringify({ message: "student only event" }))
+                            return
+                        };
+
+                        const studentAttendance = activeSession.attendance[ws.user.userId];
+
+                        if (!studentAttendance) {
+                            ws.send(JSON.stringify({
+                                event: "MY_ATTENDANCE",
+                                data: {
+                                    status: "Not yet updated"
+                                }
+                            }))
+                        }
+
+                        ws.send(JSON.stringify({
+                            event: "MY_ATTENDANCE",
+                            data: {
+                                status: studentAttendance
+                            }
+                        }));
+                        break;
+                    }
+                    case "DONE": {
+                        if (!activeSession) {
+                            ws.send(JSON.stringify({ message: "No active attendance session" }));
+                            return
+                        };
+
+                        if (ws.user?.role !== "teacher") {
+                            ws.send(JSON.stringify({ message: "Teacher only event" }));
+                            return;
+                        };
+
+                        const activeClass = await Class.findById(activeSession?.classId);
+                        const allStudents = activeClass?.studentIds;
+
+                        allStudents?.map((s) => {
+                            if (!activeSession) {
+                                ws.send(JSON.stringify({ message: "No active attendance session" }));
+                                return
+                            };
+
+                            if (!activeSession?.attendance[s.toString()]) {
+                                activeSession.attendance[s.toString()] = "absent"
+                            }
+                        });
+
+                        const attendance = Object.values(activeSession.attendance);
+                        const present = attendance.filter((x) => x === "present").length;
+                        const absent = attendance.filter((x) => x === "absent").length;
+                        const total = attendance.length;
+
+                        allStudents?.map(async (s) => {
+                            if (!activeSession) {
+                                ws.send(JSON.stringify({ message: "No active attendance session" }));
+                                return
+                            };
+
+                            const attendance = activeSession.attendance[s.toString()];
+                            if (!attendance) {
+                                return
+                            };
+
+                            await Attendance.create({
+                                classId: activeSession.classId,
+                                studentId: s,
+                                status: attendance
+                            });
+
+                            clients.forEach((x) => {
+                                if (x.readyState === WebSocket.OPEN) {
+                                    x.send(JSON.stringify({
+                                        event: "DONE",
+                                        data: {
+                                            message: "Attendance persisted",
+                                            present: present,
+                                            absent: absent,
+                                            total: total
+                                        }
+                                    }))
+                                }
+                            })
+                        })
                         break;
                     }
                     default: {

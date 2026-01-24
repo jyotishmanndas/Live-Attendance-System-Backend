@@ -127,7 +127,8 @@ export const initWebSocket = (server: ReturnType<typeof createServer>) => {
                                 data: {
                                     status: "Not yet updated"
                                 }
-                            }))
+                            }));
+                            return
                         }
 
                         ws.send(JSON.stringify({
@@ -139,7 +140,7 @@ export const initWebSocket = (server: ReturnType<typeof createServer>) => {
                         break;
                     }
                     case "DONE": {
-                        if (!activeSession) {
+                        if (!activeSession || !activeSession.classId) {
                             ws.send(JSON.stringify({ message: "No active attendance session" }));
                             return
                         };
@@ -149,7 +150,11 @@ export const initWebSocket = (server: ReturnType<typeof createServer>) => {
                             return;
                         };
 
-                        const activeClass = await Class.findById(activeSession?.classId);
+                        const activeClass = await Class.findById(activeSession?.classId);;
+                        if (!activeClass) {
+                            ws.send(JSON.stringify({ message: "Class not found" }));
+                            return;
+                        };
                         const allStudents = activeClass?.studentIds;
 
                         allStudents?.map((s) => {
@@ -168,36 +173,31 @@ export const initWebSocket = (server: ReturnType<typeof createServer>) => {
                         const absent = attendance.filter((x) => x === "absent").length;
                         const total = attendance.length;
 
-                        allStudents?.map(async (s) => {
-                            if (!activeSession) {
-                                ws.send(JSON.stringify({ message: "No active attendance session" }));
-                                return
-                            };
+                        await Promise.all(
+                            allStudents.map((s) => {
+                                const studentId = s.toString();
+                                const status = activeSession?.attendance[studentId];
 
-                            const attendance = activeSession.attendance[s.toString()];
-                            if (!attendance) {
-                                return
-                            };
-
-                            await Attendance.create({
-                                classId: activeSession.classId,
-                                studentId: s,
-                                status: attendance
-                            });
-
-                            clients.forEach((x) => {
-                                if (x.readyState === WebSocket.OPEN) {
-                                    x.send(JSON.stringify({
-                                        event: "DONE",
-                                        data: {
-                                            message: "Attendance persisted",
-                                            present: present,
-                                            absent: absent,
-                                            total: total
-                                        }
-                                    }))
-                                }
+                                return Attendance.create({
+                                    classId: activeSession?.classId,
+                                    studentId: s,
+                                    status: status
+                                })
                             })
+                        );
+
+                        clients.forEach((x) => {
+                            if (x.readyState === WebSocket.OPEN) {
+                                x.send(JSON.stringify({
+                                    event: "DONE",
+                                    data: {
+                                        message: "Attendance persisted",
+                                        present: present,
+                                        absent: absent,
+                                        total: total
+                                    }
+                                }))
+                            }
                         })
                         break;
                     }
